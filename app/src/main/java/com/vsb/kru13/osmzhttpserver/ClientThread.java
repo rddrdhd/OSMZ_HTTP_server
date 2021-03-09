@@ -21,15 +21,26 @@ import java.util.TimeZone;
 
 public class ClientThread extends Thread {
     final Socket s;
-    final int client_number;
     DataInputStream dis;
     DataOutputStream dos;
+    boolean hasToWait;
 
-    public ClientThread(Socket s, int client_number){
+    public ClientThread(Socket s, boolean hasToWait){
         this.s = s;
-        this.client_number = client_number;
+        this.hasToWait = hasToWait;
 
         Log.d("CLIENT THREAD", "Thread created");
+    }
+
+    public String getRequestHeader() throws IOException{
+        String tmp = "";
+        StringBuilder request_header = new StringBuilder();
+        do {
+            tmp = this.dis.readLine();
+            request_header.append(tmp).append("\r\n");
+        } while(tmp != null && !tmp.isEmpty());
+        request_header.append("\r\n");
+        return request_header.toString();
     }
 
     @Override
@@ -40,18 +51,9 @@ public class ClientThread extends Thread {
             this.dis = new DataInputStream(s.getInputStream());
             this.dos = new DataOutputStream(s.getOutputStream());
 
-            String tmp = "";
-            StringBuilder request_header = new StringBuilder();
-
-            // read request header
-            do {
-                tmp = this.dis.readLine();
-                request_header.append(tmp).append("\r\n");
-            } while(tmp != null && !tmp.isEmpty());
-            request_header.append("\r\n");
-
-            // parse info
-            String request = request_header.toString().split("HTTP....", 2)[0];
+         String request_header = getRequestHeader();
+          // parse info
+            String request = request_header.split("HTTP....", 2)[0];
 
             String path_to_file = request.split(" ")[1];
             String client_method = request.split(" ")[0];
@@ -71,7 +73,10 @@ public class ClientThread extends Thread {
             String response_date;
 
             // if file not found, response is 404
-            if(!my_html_file.exists()) {
+            if(hasToWait){
+                response_http_code = "503";
+                Log.d("CLIENT THREAD", "Server too busy, response will be 503");
+            } else if(!my_html_file.exists()) {
                 my_html_file = new File(file_sdcard,"android_web/404.html");
                 response_http_code = "404";
                 Log.d("CLIENT THREAD", "File not found, response will be 404");
@@ -82,7 +87,7 @@ public class ClientThread extends Thread {
             }
 
             // prepare response header
-            response_date = getServerTime();
+            response_date = G.getServerTime();
             URLConnection connection = my_html_file.toURL().openConnection();
             String content_type = connection.getContentType();
             String response_header = "HTTP/1.1 "+response_http_code+"\r\n"+
@@ -96,25 +101,29 @@ public class ClientThread extends Thread {
             dos.write(response_header.getBytes());
 
             // send content
-            byte[] bytes = new byte[1024];
-            BufferedInputStream from_file = new BufferedInputStream(new FileInputStream(my_html_file));
+            if(hasToWait){
+                dos.write("<h1>503</h1>".getBytes());
+            } else {
+                byte[] bytes = new byte[1024];
+                BufferedInputStream from_file = new BufferedInputStream(new FileInputStream(my_html_file));
 
-            int size;
-            while ((size = from_file.read(bytes)) != -1) {
-                try{
-
-                    dos.write(bytes, 0, size);
-                } catch(Exception e){
-                    e.printStackTrace();
+                int size;
+                while ((size = from_file.read(bytes)) != -1) {
+                    try {
+                        dos.write(bytes, 0, size);
+                    } catch(Exception e){
+                        e.printStackTrace();
+                    }
                 }
             }
 
             dos.flush();
-
-            Log.d("CLIENT THREAD", "Socket Closed");
         } catch(Exception e){
-            e.printStackTrace();
+           // e.printStackTrace();
         } finally {
+           // ++G.permits;
+            SocketServer.semaphore.release();
+            Log.d("CLIENT THREAD","------------------------ Killing thread. Remaining threads: "+ SocketServer.semaphore.availablePermits() );
             try {
                 if(dos != null) {
                     dos.close();
@@ -122,21 +131,19 @@ public class ClientThread extends Thread {
                 if(dis != null) {
                     dis.close();
                     s.close();
+                    Log.d("CLIENT THREAD", "Socket Closed");
                 }
             } catch (IOException e) {
                 Log.e("CLIENT THREAD","Couldn't close DIS or DOS");
                 e.printStackTrace();
             }
         }
-
-
     }
 
-    private String getServerTime() {
-        Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat(
-                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return dateFormat.format(calendar.getTime());
+    public void cancel(){
+        this.interrupt();
+        SocketServer.clientStopped(this);
     }
+
+
 }

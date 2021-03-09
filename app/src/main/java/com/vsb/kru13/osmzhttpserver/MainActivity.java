@@ -13,7 +13,7 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private SocketServer s;
+    private SocketServer s = null;
     private static final int READ_EXTERNAL_STORAGE = 1;
 
     @Override
@@ -26,13 +26,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn1.setOnClickListener(this);
         btn2.setOnClickListener(this);
-
     }
 
 
     @Override
     public void onClick(View v) {
-
         if (v.getId() == R.id.button1) {
 
             int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -46,12 +44,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
         if (v.getId() == R.id.button2) {
-            s.close();
-            try {
-                s.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if(s!=null){
+                s.close();
+                try {
+                    s.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+
         }
     }
 

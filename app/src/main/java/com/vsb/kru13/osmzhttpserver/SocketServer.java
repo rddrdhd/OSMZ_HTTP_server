@@ -1,20 +1,44 @@
 package com.vsb.kru13.osmzhttpserver;
 
 import android.util.Log;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 
-public class SocketServer extends Thread {
+class G {
+    public static int permits = 5;
 
+    public static String getServerTime() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return dateFormat.format(calendar.getTime());
+    }
+}
+
+public class SocketServer extends Thread  {
     ServerSocket serverSocket = null;
     public final int port = 12345;
     boolean bRunning;
-    final int permits_count = 5;
-    public ClientThread runningThread = null;
+    public static Semaphore semaphore = new Semaphore(5);
+    protected static Set<ClientThread> threads = Collections.newSetFromMap(new ConcurrentHashMap<ClientThread, Boolean>());
+
+    boolean hasToWait = false;
+
+    public static void clientStopped(ClientThread thread){
+        threads.remove(thread);
+        semaphore.release();
+    }
 
     public void close() {
         try {
@@ -27,32 +51,51 @@ public class SocketServer extends Thread {
     }
 
     public void run() {
-        ServerSocket serverSocket = null;
         try {
-            int remaining_threads = 5;
             Log.d("SERVER", "Creating Socket");
             serverSocket = new ServerSocket(port); // port, na kterem server nasloucha
             serverSocket.setReuseAddress(true);
             bRunning = true;
 
             while (bRunning) {
-                Log.d("SERVER", "Accepting Socket");
-                Socket s = serverSocket.accept(); // cekam na prichozi pripojeni, .accept() je blokuje vlakno
-                Log.d("SERVER","New client connected: "+s.getInetAddress().getHostAddress());
+                Socket s = null;
+                try {
+                    hasToWait= !semaphore.tryAcquire();
+                    Log.d("SERVER", "Socket waiting for connection");
+                    s = serverSocket.accept(); // cekam na prichozi pripojeni, .accept() je blokuje vlakno
+                    s.setKeepAlive(true);
+                    Log.d("SERVER","Accepting connection from "+s.getRemoteSocketAddress());
+                } catch (IOException e) {
+                    if (!isInterrupted()) {
+                        Log.d("SERVER", getName() + ": " + e.getMessage());
+                    }
+                    if (serverSocket != null && serverSocket.isClosed()){
+                        Log.d("SERVER", "Normal exit");
+                    } else {
+                        Log.e("SERVER", "Error");
+                        e.printStackTrace();
+                    }
+                    if (s != null) {
+                        try {
+                            s.close();
+                        } catch (IOException ignored) { }
+                    }
+                    semaphore.release();
+                    continue;
+                }
 
-               // Log.d("SERVER", "Socket Waiting for  connection");
-                ClientThread t = new ClientThread(s, remaining_threads);
-                Log.d("SERVER","Starting thread. Remaining threads: "+ remaining_threads );
-                //remaining_threads--;
-                new Thread(t).start();
+                ClientThread t = new ClientThread(s, hasToWait);
+                threads.add(t);
+                t.start();
+                Log.d("SERVER","+++++++++++++++++++++++++ Starting thread. Remaining threads: "+ semaphore.availablePermits() );
 
-                // t.run();
-                //remaining_threads++;
-                Log.d("SERVER","Killing thread. Remaining threads: "+ remaining_threads );
-                Log.d("SERVER",".");
 
             } // endwhile
-        } catch (IOException e) {
+            for(ClientThread thread: threads){
+                thread.cancel();
+            }
+            Log.d("SERVER", "STOPPED ALL");
+        /*} catch (IOException e) {
             if (serverSocket != null && serverSocket.isClosed()){
                 Log.d("SERVER", "Normal exit");
             } else {
@@ -71,10 +114,15 @@ public class SocketServer extends Thread {
             } else {
                 Log.e("SERVER", "Error");
                 e.printStackTrace();
-            }
+            }*/
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             serverSocket = null;
             bRunning = false;
+            semaphore.release();
         }
     }
 
