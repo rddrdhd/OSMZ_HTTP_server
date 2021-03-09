@@ -1,9 +1,6 @@
 package com.vsb.kru13.osmzhttpserver;
 
-import android.os.Build;
 import android.util.Log;
-
-import androidx.annotation.RequiresApi;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -13,9 +10,11 @@ import java.net.Socket;
 
 public class SocketServer extends Thread {
 
-    ServerSocket serverSocket;
+    ServerSocket serverSocket = null;
     public final int port = 12345;
     boolean bRunning;
+    final int permits_count = 5;
+    public ClientThread runningThread = null;
 
     public void close() {
         try {
@@ -28,25 +27,30 @@ public class SocketServer extends Thread {
     }
 
     public void run() {
+        ServerSocket serverSocket = null;
         try {
-            int counter = 0;
+            int remaining_threads = 5;
             Log.d("SERVER", "Creating Socket");
-            serverSocket = new ServerSocket(port); // port, na kterem aplikace nasloucha
+            serverSocket = new ServerSocket(port); // port, na kterem server nasloucha
+            serverSocket.setReuseAddress(true);
             bRunning = true;
 
-            while (!serverSocket.isClosed()) {
-                counter++;
-                Log.d("SERVER", "Socket Waiting for "+counter+". connection");
+            while (bRunning) {
+                Log.d("SERVER", "Accepting Socket");
                 Socket s = serverSocket.accept(); // cekam na prichozi pripojeni, .accept() je blokuje vlakno
-                Log.d("SERVER", "Socket Accepted");
+                Log.d("SERVER","New client connected: "+s.getInetAddress().getHostAddress());
 
-                DataOutputStream o = new DataOutputStream(s.getOutputStream());
-                DataInputStream in = new DataInputStream(s.getInputStream()); // vstup ze socketu
+               // Log.d("SERVER", "Socket Waiting for  connection");
+                ClientThread t = new ClientThread(s, remaining_threads);
+                Log.d("SERVER","Starting thread. Remaining threads: "+ remaining_threads );
+                //remaining_threads--;
+                new Thread(t).start();
 
-                Log.d("SERVER","Assigning new thread ("+counter+")");
+                // t.run();
+                //remaining_threads++;
+                Log.d("SERVER","Killing thread. Remaining threads: "+ remaining_threads );
+                Log.d("SERVER",".");
 
-                Thread t = new ClientThread(s, in, o, counter);
-                 t.start();
             } // endwhile
         } catch (IOException e) {
             if (serverSocket != null && serverSocket.isClosed()){
@@ -59,9 +63,9 @@ public class SocketServer extends Thread {
             if (serverSocket != null && !serverSocket.isClosed()){
                 try {
                     serverSocket.close();
-                    Log.e("SERVER", "Error, serverSocked closed.");
+                    Log.e("SERVER", "Error, serverSocket closed.");
                 } catch (IOException f){
-                    Log.e("SERVER", "Error, serverSocked not closed.");
+                    Log.e("SERVER", "Error, serverSocket not closed.");
                     f.printStackTrace();
                 }
             } else {
