@@ -4,41 +4,17 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
-class G {
-    public static int permits = 5;
-
-    public static String getServerTime() {
-        Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat(
-                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return dateFormat.format(calendar.getTime());
-    }
-}
-
 public class SocketServer extends Thread  {
+    boolean bRunning = false;
     ServerSocket serverSocket = null;
     public final int port = 12345;
-    boolean bRunning;
     public static Semaphore semaphore = new Semaphore(5);
-    protected static Set<ClientThread> threads = Collections.newSetFromMap(new ConcurrentHashMap<ClientThread, Boolean>());
-
-    boolean hasToWait = false;
-
-    public static void clientStopped(ClientThread thread){
-        threads.remove(thread);
-        semaphore.release();
-    }
 
     public void close() {
         try {
@@ -60,7 +36,6 @@ public class SocketServer extends Thread  {
             while (bRunning) {
                 Socket s = null;
                 try {
-                    hasToWait= !semaphore.tryAcquire();
                     Log.d("SERVER", "Socket waiting for connection");
                     s = serverSocket.accept(); // cekam na prichozi pripojeni, .accept() je blokuje vlakno
                     s.setKeepAlive(true);
@@ -80,22 +55,16 @@ public class SocketServer extends Thread  {
                             s.close();
                         } catch (IOException ignored) { }
                     }
-                    semaphore.release();
                     continue;
                 }
 
-                ClientThread t = new ClientThread(s, hasToWait);
-                threads.add(t);
+                ClientThread t = new ClientThread(s);
                 t.start();
-                Log.d("SERVER","+++++++++++++++++++++++++ Starting thread. Remaining threads: "+ semaphore.availablePermits() );
+                Log.d("SERVER","+++ Starting thread. Remaining threads: "+ semaphore.availablePermits() );
 
 
-            } // endwhile
-            for(ClientThread thread: threads){
-                thread.cancel();
             }
-            Log.d("SERVER", "STOPPED ALL");
-        /*} catch (IOException e) {
+       } catch (IOException e) {
             if (serverSocket != null && serverSocket.isClosed()){
                 Log.d("SERVER", "Normal exit");
             } else {
@@ -114,16 +83,20 @@ public class SocketServer extends Thread  {
             } else {
                 Log.e("SERVER", "Error");
                 e.printStackTrace();
-            }*/
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            }
         } finally {
             serverSocket = null;
             bRunning = false;
-            semaphore.release();
+            //semaphore.release();
         }
+    }
+
+    public static String getServerTime() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return dateFormat.format(calendar.getTime());
     }
 
 }
