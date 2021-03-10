@@ -1,5 +1,8 @@
 package com.vsb.kru13.osmzhttpserver;
 
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -15,7 +18,10 @@ public class SocketServer extends Thread  {
     ServerSocket serverSocket = null;
     public final int port = 12345;
     public static Semaphore semaphore = new Semaphore(5);
-
+    public Handler handler;
+    SocketServer(Handler handler){
+        this.handler = handler;
+    }
     public void close() {
         try {
             serverSocket.close();
@@ -33,13 +39,30 @@ public class SocketServer extends Thread  {
             serverSocket.setReuseAddress(true);
             bRunning = true;
 
+            Bundle b = new Bundle();
+            b.putInt("permits",SocketServer.semaphore.availablePermits());
+            b.putString("info", SocketServer.getShortServerTime() +":Server is running \r\n");
+            Message msg = handler.obtainMessage();
+            msg.setData(b);
+            msg.sendToTarget();
+
+
             while (bRunning) {
                 Socket s = null;
                 try {
                     Log.d("SERVER", "Socket waiting for connection");
                     s = serverSocket.accept(); // cekam na prichozi pripojeni, .accept() je blokuje vlakno
                     s.setKeepAlive(true);
+
                     Log.d("SERVER","Accepting connection from "+s.getRemoteSocketAddress());
+
+                   /* b.putString("info", "Accepting connection from "+s.getRemoteSocketAddress()+"\r\n");
+                    Message msg = handler.obtainMessage();
+                    msg.setData(b);
+                    msg.sendToTarget();*/
+
+
+
                 } catch (IOException e) {
                     if (!isInterrupted()) {
                         Log.d("SERVER", getName() + ": " + e.getMessage());
@@ -56,15 +79,12 @@ public class SocketServer extends Thread  {
                         } catch (IOException ignored) { }
                     }
                     continue;
-                }
-
-                ClientThread t = new ClientThread(s);
+                } 
+                ClientThread t = new ClientThread(s, handler);
                 t.start();
                 Log.d("SERVER","+++ Starting thread. Remaining threads: "+ semaphore.availablePermits() );
-
-
             }
-       } catch (IOException e) {
+        } catch (IOException e) {
             if (serverSocket != null && serverSocket.isClosed()){
                 Log.d("SERVER", "Normal exit");
             } else {
@@ -95,7 +115,14 @@ public class SocketServer extends Thread  {
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat(
                 "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+1"));
+        return dateFormat.format(calendar.getTime());
+    }
+    public static String getShortServerTime() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "HH:mm:ss", Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+1"));
         return dateFormat.format(calendar.getTime());
     }
 

@@ -9,7 +9,7 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/buttonStart"
+        android:id="@+id/button1"
         style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -17,47 +17,32 @@
         android:textColor="#4CAF50"
         android:textColorHighlight="#009688"
         android:textColorLink="#4CAF50"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/infoList" />
 
     <Button
-        android:id="@+id/buttonStop"
+        android:id="@+id/button2"
         style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/btn2_text"
-        android:textColor="#F44336"
+        android:textColor="#FF5722"
         android:textColorHighlight="#FF5722"
         android:textColorLink="#FF5722"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/infoList" />
 
-    <TextView
-        android:id="@+id/infoPermits"
-        android:layout_width="130dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="50dp"
-        android:textColor="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="@+id/buttonStop"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ScrollView
-        android:id="@+id/scrollView2"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/infoList"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginBottom="70dp"
+        android:layout_marginBottom="100dp"
+        android:background="#0B0D11"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/infoText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#0B0D11"
-            android:textColor="#FFFFFF" />
-    </ScrollView>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

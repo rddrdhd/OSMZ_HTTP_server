@@ -1,6 +1,9 @@
 package com.vsb.kru13.osmzhttpserver;
 
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -17,10 +20,15 @@ public class ClientThread extends Thread {
     DataInputStream dis;
     DataOutputStream dos;
     boolean thread_is_waiting;
+    Handler handler;
     //boolean request_is_null;
-    public ClientThread(Socket s){
+    public ClientThread(Socket s, Handler handler){
         this.s = s;
+        this.handler = handler;
         this.thread_is_waiting = !SocketServer.semaphore.tryAcquire();
+        // TextView update
+        updateTexts("Thread created"+((this.thread_is_waiting?" and will wait.":".")));
+
         Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "Thread created"+ ((this.thread_is_waiting)?", but will wait":""));
     }
 
@@ -32,6 +40,7 @@ public class ClientThread extends Thread {
             request_header.append(tmp).append("\r\n");
         } while(tmp != null && !tmp.isEmpty());
         request_header.append("\r\n");
+
         return request_header.toString();
     }
 
@@ -49,6 +58,11 @@ public class ClientThread extends Thread {
             String request = request_header.split("HTTP....", 2)[0];
             Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "??? "+request);
 
+            // TextView update
+            String ua_value = request_header.split("User-Agent: ")[1];
+            ua_value = ua_value.split("\r\n")[0];
+            updateTexts(ua_value);
+
             String path_to_file;
             path_to_file = request.split(" ")[1];
 
@@ -60,9 +74,8 @@ public class ClientThread extends Thread {
             File file_sdcard = Environment.getExternalStorageDirectory();
             File my_html_file = new File(file_sdcard,"android_web/"+filename);
 
-            String response_http_code;
-            String response_date;
-            String page503 = "<h1>503</h1>";
+            String response_http_code, response_date;
+            String page503 = "<h1>503 Service Temporarily Unavailable</h1>";
 
             if(thread_is_waiting){
                 response_http_code = "503";
@@ -77,7 +90,9 @@ public class ClientThread extends Thread {
                 Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "!!! File found, response will be 200");
             }
 
-            // prepare header
+            // TextView update
+            updateTexts(request+" => "+response_http_code);
+
             response_date = SocketServer.getServerTime();
             int content_length = (thread_is_waiting) ? page503.getBytes().length : (int) my_html_file.length();
             String content_type = getMimeType(my_html_file.getPath());
@@ -118,9 +133,8 @@ public class ClientThread extends Thread {
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
-            if(!thread_is_waiting)
-                SocketServer.semaphore.release();
-
+            if(!thread_is_waiting) SocketServer.semaphore.release();
+            updateTexts("Killing thread");
             Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),"--- Killing thread. Remaining threads: "+ SocketServer.semaphore.availablePermits() );
             try {
                 if(dos != null) {
@@ -137,6 +151,7 @@ public class ClientThread extends Thread {
             }
         }
     }
+
     public static String getMimeType(String url) {
         String type = null;
         String extension = MimeTypeMap.getFileExtensionFromUrl(url);
@@ -144,5 +159,13 @@ public class ClientThread extends Thread {
             type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
         }
         return type;
+    }
+    public void updateTexts(String info){
+        Bundle b = new Bundle();
+        b.putInt("permits",SocketServer.semaphore.availablePermits());
+        b.putString("info", SocketServer.getShortServerTime() +" T"+s.getRemoteSocketAddress()+": "+ info);
+        Message msg = handler.obtainMessage();
+        msg.setData(b);
+        msg.sendToTarget();
     }
 }
