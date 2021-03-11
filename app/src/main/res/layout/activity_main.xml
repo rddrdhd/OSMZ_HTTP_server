@@ -8,56 +8,66 @@
     android:background="#0B0D11"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/buttonStart"
-        style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/btn1_text"
-        android:textColor="#4CAF50"
-        android:textColorHighlight="#009688"
-        android:textColorLink="#4CAF50"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/buttonStop"
-        style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/btn2_text"
-        android:textColor="#F44336"
-        android:textColorHighlight="#FF5722"
-        android:textColorLink="#FF5722"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <FrameLayout
+            android:id="@+id/camera_preview"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
-    <TextView
-        android:id="@+id/infoPermits"
-        android:layout_width="130dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="50dp"
-        android:textColor="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="@+id/buttonStop"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <ScrollView
+            android:id="@+id/scrollView2"
+            android:layout_width="match_parent"
+            android:layout_height="300dp">
 
-    <ScrollView
-        android:id="@+id/scrollView2"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="70dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+            <TextView
+                android:id="@+id/infoText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#0B0D11"
+                android:textColor="#FFFFFF" />
+        </ScrollView>
 
-        <TextView
-            android:id="@+id/infoText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#0B0D11"
-            android:textColor="#FFFFFF" />
-    </ScrollView>
+            android:baselineAligned="false"
+            android:clickable="false"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/buttonStop"
+                style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
+                android:layout_width="119dp"
+                android:layout_height="wrap_content"
+                android:text="@string/btn2_text"
+                android:textColor="#F44336"
+                android:textColorHighlight="#FF5722"
+                android:textColorLink="#FF5722" />
+
+            <TextView
+                android:id="@+id/infoPermits"
+                android:layout_width="146dp"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/buttonStart"
+                style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
+                android:layout_width="136dp"
+                android:layout_height="wrap_content"
+                android:text="@string/btn1_text"
+                android:textColor="#4CAF50"
+                android:textColorHighlight="#009688"
+                android:textColorLink="#4CAF50" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

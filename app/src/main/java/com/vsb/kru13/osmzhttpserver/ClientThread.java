@@ -21,15 +21,17 @@ public class ClientThread extends Thread {
     DataOutputStream dos;
     boolean thread_is_waiting;
     Handler handler;
-    //boolean request_is_null;
+
     public ClientThread(Socket s, Handler handler){
         this.s = s;
         this.handler = handler;
         this.thread_is_waiting = !SocketServer.semaphore.tryAcquire();
+
         // TextView update
         updateTexts("Thread created"+((this.thread_is_waiting?" and will wait.":".")));
 
-        Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "Thread created"+ ((this.thread_is_waiting)?", but will wait":""));
+        Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                "Thread created"+ ((this.thread_is_waiting)?", but will wait":""));
     }
 
     public String getRequestHeader() throws IOException{
@@ -79,23 +81,27 @@ public class ClientThread extends Thread {
 
             if(thread_is_waiting){
                 response_http_code = "503";
-                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "!!! Server too busy, response will be 503");
+                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                        "!!! Server too busy, response will be 503");
             } else if(!my_html_file.exists()) {
                 my_html_file = new File(file_sdcard,"android_web/404.html");
                 response_http_code = "404";
-                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "!!! File not found, response will be 404");
-
+                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                        "!!! File not found, response will be 404");
             } else {
                 response_http_code = "200";
-                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "!!! File found, response will be 200");
+                Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                        "!!! File found, response will be 200");
             }
 
             // TextView update
             updateTexts(request+" => "+response_http_code);
 
             response_date = SocketServer.getServerTime();
-            int content_length = (thread_is_waiting) ? page503.getBytes().length : (int) my_html_file.length();
+            int content_length = thread_is_waiting ?
+                    page503.getBytes().length : (int)my_html_file.length();
             String content_type = getMimeType(my_html_file.getPath());
+
             String response_header = "HTTP/1.1 "+response_http_code+"\r\n"+
                     "Date: "+ response_date +"\r\n" +
                     "Server: Apache\r\n" +
@@ -135,7 +141,9 @@ public class ClientThread extends Thread {
         } finally {
             if(!thread_is_waiting) SocketServer.semaphore.release();
             updateTexts("Killing thread");
-            Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),"--- Killing thread. Remaining threads: "+ SocketServer.semaphore.availablePermits() );
+            Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                    "--- Killing thread. Remaining threads: "
+                            + SocketServer.semaphore.availablePermits() );
             try {
                 if(dos != null) {
                     dos.close();
@@ -146,7 +154,8 @@ public class ClientThread extends Thread {
                     Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(), "Socket Closed");
                 }
             } catch (IOException e) {
-                Log.e("CLIENT THREAD" +s.getRemoteSocketAddress(),"Couldn't close DIS or DOS");
+                Log.e("CLIENT THREAD" +s.getRemoteSocketAddress(),
+                        "Couldn't close DIS or DOS");
                 e.printStackTrace();
             }
         }
@@ -160,10 +169,12 @@ public class ClientThread extends Thread {
         }
         return type;
     }
+
     public void updateTexts(String info){
         Bundle b = new Bundle();
-        b.putInt("permits",SocketServer.semaphore.availablePermits());
-        b.putString("info", SocketServer.getShortServerTime() +" T"+s.getRemoteSocketAddress()+": "+ info);
+        b.putInt("permits", SocketServer.semaphore.availablePermits());
+        b.putString("info",
+                SocketServer.getShortServerTime()+" T"+s.getRemoteSocketAddress()+": "+info);
         Message msg = handler.obtainMessage();
         msg.setData(b);
         msg.sendToTarget();
