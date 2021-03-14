@@ -120,7 +120,7 @@ public class ClientThread extends Thread {
                         "Date: "+ response_date +"\r\n" +
                         "Server: Apache\r\n" +
                         "Last-Modified: "+ response_date +"\r\n" +
-                        "Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n" +
+                        "Cache-Control: no-store, no-cache, must-revalidate, max-age=0\r\n" +
                         "Pragma: no-cache\r\n" +
                         "Content-Type: "+ content_type +"\r\n" +
                         "\r\n";
@@ -128,19 +128,19 @@ public class ClientThread extends Thread {
                 // send header
                 this.dos.write(response_header.getBytes());
 
-                // start with first img
-                this.dos.write(("--"+boundary+"\r\n").getBytes());
+                while(true){
+                    this.dos.write(("--"+boundary+"\r\n").getBytes());
 
-                content_length =  (int)my_html_file.length();
-                this.dos.write(("Content-type: image/jpeg\r\n").getBytes());
-                this.dos.write(("Content-length: "+content_length+"\r\n\r\n").getBytes());
+                    content_length =  (int)my_html_file.length();
+                    this.dos.write(("Content-type: image/jpeg\r\n").getBytes());
+                    this.dos.write(("Content-length: "+content_length+"\r\n\r\n").getBytes());
 
-                updateTexts("Start of sending data");
+                    updateTexts("Start of sending data");
 
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                SocketServer.newest_img.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                byte[] byteArray = stream.toByteArray();
-                this.dos.write(byteArray);
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    SocketServer.newest_img.compress(Bitmap.CompressFormat.PNG, 50, stream);
+                    byte[] byteArray = stream.toByteArray();
+                    this.dos.write(byteArray);
                 /*while ((size = SocketServer.newest_img.read(bytes)) != -1) {
                     try {
                         this.dos.write(bytes, 0, size);
@@ -148,9 +148,13 @@ public class ClientThread extends Thread {
                         //
                     }
                 }*/
-                this.dos.write(("\r\n--"+boundary+"\r\n").getBytes());
-                this.dos.flush();
-                updateTexts("Img sent");
+                    this.dos.write(("\r\n--"+boundary+"\r\n").getBytes());
+                    this.dos.flush();
+
+                    updateTexts("Img sent");
+                }
+                // start with first img
+
 
             } else { // get html page from storage
                 content_length =  (int)my_html_file.length();
@@ -183,7 +187,6 @@ public class ClientThread extends Thread {
                 fis.close();
             }
             dos.flush();
-
             updateTexts("End of sending data");
         } catch (ArrayIndexOutOfBoundsException ignored){
             //
@@ -191,7 +194,9 @@ public class ClientThread extends Thread {
             e.printStackTrace();
         } finally {
             if(!is_waiting) SocketServer.semaphore.release();
-            updateTexts("Killing thread");
+            String type = " normal";
+            if(is_stream) type=" stream";
+            updateTexts("Killing thread"+type);
             Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
                     "--- Killing thread. Remaining threads: "
                             + SocketServer.semaphore.availablePermits() );

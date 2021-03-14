@@ -9,6 +9,7 @@
     tools:context=".MainActivity">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -75,24 +76,22 @@
             <Button
                 android:id="@+id/buttStopServer"
                 style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
-                android:layout_width="119dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/btn2_text"
                 android:textColor="#8A8A8A"
                 android:textColorHighlight="#FF5722"
                 android:textColorLink="#FF5722" />
 
-            <TextView
-                android:id="@+id/infoPermits"
-                android:layout_width="146dp"
+            <Space
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                android:textColor="#FFFFFF" />
+                android:layout_weight="1" />
 
             <Button
                 android:id="@+id/buttStartServer"
                 style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
-                android:layout_width="136dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/btn1_text"
                 android:textColor="#4CAF50"
@@ -101,5 +100,16 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/infoPermits"
+        android:layout_width="146dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="35dp"
+        android:foregroundGravity="center"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="@+id/linearLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
