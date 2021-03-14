@@ -1,5 +1,6 @@
 package com.vsb.kru13.osmzhttpserver;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -14,11 +15,12 @@ import java.util.TimeZone;
 import java.util.concurrent.Semaphore;
 
 public class SocketServer extends Thread  {
-    boolean bRunning = false;
-    ServerSocket serverSocket = null;
+    private boolean bRunning = false;
+    private ServerSocket serverSocket = null;
+    private final Handler handler;
     public final int port = 12345;
+    public static Bitmap newest_img = null;
     public static Semaphore semaphore = new Semaphore(5);
-    public Handler handler;
 
     SocketServer(Handler handler){
         this.handler = handler;
@@ -33,7 +35,7 @@ public class SocketServer extends Thread  {
 
             Bundle b = new Bundle();
             b.putInt("permits", SocketServer.semaphore.availablePermits());
-            b.putString("info", SocketServer.getShortServerTime() +": Server is running \r\n");
+            b.putString("info", SocketServer.getShortServerTime() +": Server started");
             Message msg = handler.obtainMessage();
             msg.setData(b);
             msg.sendToTarget();
