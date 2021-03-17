@@ -24,6 +24,7 @@ public class ClientThread extends Thread {
     private final Handler handler;
     private final boolean is_waiting;
     public boolean is_stream;
+    public static boolean is_streaming = false;
     private static final int BUFFER_SIZE = 1024;
 
     public ClientThread(Socket s, Handler handler){
@@ -112,6 +113,7 @@ public class ClientThread extends Thread {
                 this.dos.write(page503.getBytes());
 
             } else if(this.is_stream){
+                is_streaming = true;
                 String boundary = "OSMZ_boundary";
                 content_type = "multipart/x-mixed-replace; boundary=\""+boundary+"\"";
                 updateTexts("Creating streaming header");
@@ -128,7 +130,7 @@ public class ClientThread extends Thread {
                 // send header
                 this.dos.write(response_header.getBytes());
 
-                while(true){
+                while(is_streaming){
                     this.dos.write(("--"+boundary+"\r\n").getBytes());
 
                     content_length =  (int)my_html_file.length();
@@ -138,7 +140,7 @@ public class ClientThread extends Thread {
                     updateTexts("Start of sending data");
 
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    SocketServer.newest_img.compress(Bitmap.CompressFormat.PNG, 50, stream);
+                    SocketServer.newest_img.compress(Bitmap.CompressFormat.PNG, 100, stream);
                     byte[] byteArray = stream.toByteArray();
                     this.dos.write(byteArray);
                 /*while ((size = SocketServer.newest_img.read(bytes)) != -1) {
@@ -151,9 +153,12 @@ public class ClientThread extends Thread {
                     this.dos.write(("\r\n--"+boundary+"\r\n").getBytes());
                     this.dos.flush();
 
+                    sleep(2000);
                     updateTexts("Img sent");
                 }
                 // start with first img
+
+                this.dos.write(("\r\n--"+boundary+"--\r\n\r\n").getBytes());
 
 
             } else { // get html page from storage
@@ -194,9 +199,7 @@ public class ClientThread extends Thread {
             e.printStackTrace();
         } finally {
             if(!is_waiting) SocketServer.semaphore.release();
-            String type = " normal";
-            if(is_stream) type=" stream";
-            updateTexts("Killing thread"+type);
+            updateTexts("Killing thread");
             Log.d("CLIENT THREAD" +s.getRemoteSocketAddress(),
                     "--- Killing thread. Remaining threads: "
                             + SocketServer.semaphore.availablePermits() );

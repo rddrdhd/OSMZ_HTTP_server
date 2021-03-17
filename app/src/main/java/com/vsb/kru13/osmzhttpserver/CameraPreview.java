@@ -29,12 +29,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         // The Surface has been created, now tell the camera where to draw the preview.
         try {
             Camera.Parameters params = mCamera.getParameters();
-            if (params.getSupportedFocusModes().contains(
-                    Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+            if (params.getSupportedFocusModes().contains( Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             }
             mCamera.setParameters(params);
             mCamera.setPreviewDisplay(holder);
+
+            // Portrait orientation
             mCamera.setDisplayOrientation(90);
         } catch (IOException e) {
             Log.d("CAMERA PREVIEW", "Error setting camera preview: " + e.getMessage());

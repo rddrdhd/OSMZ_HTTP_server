@@ -62,11 +62,18 @@ public class SocketServer extends Thread  {
                         Log.e("SERVER", "Error");
                         e.printStackTrace();
                     }
-
                     continue;
                 }
+
                 ClientThread t = new ClientThread(s, handler);
+                Bundle C = new Bundle();
+                b.putString("info",
+                        SocketServer.getShortServerTime()+" T"+s.getRemoteSocketAddress()+": STARTED");
+                Message msB = handler.obtainMessage();
+                msB.setData(C);
+                msB.sendToTarget();
                 t.start();
+
                 Log.d("SERVER","+++ Starting thread. Remaining threads: "
                         + semaphore.availablePermits() );
             }

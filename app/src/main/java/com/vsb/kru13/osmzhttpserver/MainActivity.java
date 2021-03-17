@@ -32,11 +32,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-
     private SocketServer s = null;
     private CameraPreview mPreview;
     private Camera mCamera;
     private TimerTask timerTask;
+    private static final int SHUTTER_PERIOD = 2000;
     private static final int READ_EXTERNAL_STORAGE = 1;
     private static final int WRITE_EXTERNAL_STORAGE = 2;
 
@@ -139,7 +139,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void stopCameraStream(){
         timerTask.cancel();
         mCamera.stopPreview();
-        mCamera.release();
+        ClientThread.is_streaming = false;
+
         Button stopButt = (Button) findViewById(R.id.buttStopStream);
         stopButt.setTextColor(Color.GRAY);
         Button startButt = (Button) findViewById(R.id.buttStartStream);
@@ -155,6 +156,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(mPreview);
 
+        // Call takePicture() every SHUTTER_PERIOD ms
         Timer timer = new Timer();
         timerTask  = new TimerTask(){
             @Override
@@ -163,8 +165,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mCamera.takePicture(null, null, mPicture);
             }
         };
-        timer.schedule(timerTask, 5000, 2000);
+        timer.schedule(timerTask, 2000, SHUTTER_PERIOD);
 
+        ClientThread.is_streaming = false;
         // UI
         Button startButt = (Button) findViewById(R.id.buttStartStream);
         startButt.setTextColor(Color.GRAY);
@@ -191,6 +194,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
+
     /** Check if this device has a camera */
     private boolean checkCameraHardware(Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
@@ -219,29 +223,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onPictureTaken(byte[] data, Camera camera) {
             Log.d("MAIN", "Picture taken");
 
+            // Get bitmap
             Bitmap tmp = BitmapFactory.decodeByteArray(data, 0, data.length);
 
+            // Portrait orientation of pic
             Matrix matrix = new Matrix();
             matrix.postRotate(90);
             Bitmap scaledBitmap = Bitmap.createScaledBitmap(tmp, tmp.getWidth(), tmp.getHeight(), true);
             Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
 
+            // Update newest pic on server
             SocketServer.newest_img = rotatedBitmap;
-
-            /*File pictureFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath().toString()+"/android_web/camera.jpg");
-            if (pictureFile == null){
-                Log.d("MAIN ACTIVITY", "Error creating media file, check storage permissions");
-                return;
-            }
-            try {
-                FileOutputStream fos = new FileOutputStream(pictureFile);
-                fos.write(data);
-                fos.close();
-            } catch (FileNotFoundException e) {
-                Log.d("MAIN ACTIVITY", "File not found: " + e.getMessage());
-            } catch (IOException e) {
-                Log.d("MAIN ACTIVITY", "Error accessing file: " + e.getMessage());
-           }*/
         }
     };
 }
